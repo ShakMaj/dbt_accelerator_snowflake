@@ -1,0 +1,7 @@
+# vars.yml
+
+copy_into_bronze:
+  target_table: "bronze_zone_dev.sasreference.reqdriver"
+  stage_name: "sasreference_stage"
+  force_load: true
+

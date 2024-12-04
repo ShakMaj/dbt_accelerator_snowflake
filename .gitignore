@@ -1,0 +1,8 @@
+
+target/
+data_platform/
+dbt_packages/
+logs/
+dbt-env/
+target/
+datafoundation_dbt/logs/

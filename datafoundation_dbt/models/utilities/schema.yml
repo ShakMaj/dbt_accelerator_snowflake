@@ -1,0 +1,15 @@
+version: 2
+sources:
+  - name: sql
+    database: wfeeus2-devdatamgmt-config-azsqldb
+    schema: config  # The schema where the 'object_catalog' table is located
+    tables:
+      - name: object_catalog  # The table you're referencing
+        description: "Table containing the object metadata"
+
+  - name: snowflake
+    database: BRONZE_ZONE_DEV  # Your Snowflake database name
+    schema: SASREFERENCE  # Your Snowflake schema name
+    tables:
+      - name: DBO_ADMINREFERENCE  # The table you will query in Snowflake
+        description: "The target table in Snowflake"
