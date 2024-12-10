@@ -1,0 +1,15 @@
+{
+	"name": "landing_zone",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://wfeeus2devdatamgmtadls01.dfs.core.windows.net/"
+		},
+		"connectVia": {
+			"referenceName": "ir-azure-managedvnet-runtime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

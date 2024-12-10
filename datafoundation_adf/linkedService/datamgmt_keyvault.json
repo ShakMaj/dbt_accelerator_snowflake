@@ -1,0 +1,11 @@
+{
+	"name": "datamgmt_keyvault",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://WFEEUS2-DEVDatamgmt-KV.vault.azure.net/"
+		}
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"name": "WFEEUS2-DEV-DataMgmt-adf-kv-PE",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/311790ab-8287-4774-8198-cddb52005e34/resourceGroups/EUS2-DEVDataMgmt-DataFnd-RG/providers/Microsoft.KeyVault/vaults/WFEEUS2-DEVDatamgmt-KV",
+		"groupId": "vault",
+		"fqdns": [
+			"wfeeus2-devdatamgmt-kv.vault.azure.net"
+		]
+	}
+}

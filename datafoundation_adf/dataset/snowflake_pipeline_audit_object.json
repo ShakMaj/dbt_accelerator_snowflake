@@ -1,0 +1,13 @@
+{
+	"name": "snowflake_pipeline_audit_object",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "snowflake_azure_pipeline_audit",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SnowflakeV2Table",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,26 @@
+{
+	"name": "landing_zone_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "landing_zone",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "LOAD00000001.csv.gz",
+				"folderPath": "WescomCSV/TDB2PMED.VEND_REQ_XML",
+				"fileSystem": "qlikreplicatepoc"
+			},
+			"columnDelimiter": ",",
+			"compressionCodec": "gzip",
+			"escapeChar": "\\",
+			"firstRowAsHeader": false,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

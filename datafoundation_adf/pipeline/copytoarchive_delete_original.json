@@ -1,0 +1,158 @@
+{
+	"name": "copytoarchive_delete_original",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.source_system_name,'/',pipeline().parameters.source_object_name)",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*.parquet",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "ParquetReadSettings"
+						}
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "landing_zone_dfs_parquet_dynamic",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_name": {
+								"value": "@pipeline().parameters.landing_zone_container",
+								"type": "Expression"
+							},
+							"folder_path": {
+								"value": "@concat(pipeline().parameters.source_system_name,'/',pipeline().parameters.source_object_name)",
+								"type": "Expression"
+							},
+							"filename_with_extension": "*.parquet"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "archive_landing_zone_dfs_parquet_dynamic",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_name": {
+								"value": "@pipeline().parameters.archive_container",
+								"type": "Expression"
+							},
+							"folder_path": {
+								"value": "@concat(pipeline().parameters.source_system_name,'/',pipeline().parameters.source_object_name,'/',formatDateTime(utcNow(),'yyyy'),'/',formatDateTime(utcNow(),'MM'),'/',formatDateTime(utcNow(),'dd'),'/',formatDateTime(utcNow(),'hh'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Delete1",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "landing_zone_dfs_parquet_dynamic",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_name": {
+								"value": "@pipeline().parameters.landing_zone_container",
+								"type": "Expression"
+							},
+							"folder_path": {
+								"value": "@concat(pipeline().parameters.source_system_name,'/',pipeline().parameters.source_object_name)",
+								"type": "Expression"
+							},
+							"filename_with_extension": "*.parquet"
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*.parquet",
+						"enablePartitionDiscovery": false
+					}
+				}
+			}
+		],
+		"parameters": {
+			"archive_container": {
+				"type": "string",
+				"defaultValue": "archive-landing-zone"
+			},
+			"source_system_name": {
+				"type": "string",
+				"defaultValue": "sasreference"
+			},
+			"source_object_name": {
+				"type": "string",
+				"defaultValue": "tbl1"
+			},
+			"landing_zone_container": {
+				"type": "string",
+				"defaultValue": "landing-zone"
+			}
+		},
+		"folder": {
+			"name": "poc_debug"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-11-24T19:01:18Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

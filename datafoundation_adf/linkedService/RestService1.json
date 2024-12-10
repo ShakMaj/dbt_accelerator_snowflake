@@ -1,0 +1,17 @@
+{
+	"name": "RestService1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://svmddbt01.westfieldgrp.corp:8080",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		},
+		"connectVia": {
+			"referenceName": "shir-onpremconnection",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

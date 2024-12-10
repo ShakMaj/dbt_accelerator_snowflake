@@ -1,0 +1,19 @@
+{
+	"name": "pl_landing_bronze_silver_gold",
+	"properties": {
+		"activities": [
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2024-11-18T18:26:25Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

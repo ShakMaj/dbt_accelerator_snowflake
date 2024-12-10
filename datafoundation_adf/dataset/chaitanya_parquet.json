@@ -1,0 +1,25 @@
+{
+	"name": "chaitanya_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "landing_zone",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "poc_datasets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "LOAD00000001.parquet",
+				"folderPath": "WescomTest/TDB2PMED.POL_RT_SNPSHT_XML",
+				"fileSystem": "qlikreplicatepoc"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

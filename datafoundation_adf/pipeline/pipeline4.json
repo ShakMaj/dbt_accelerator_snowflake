@@ -1,0 +1,98 @@
+{
+	"name": "pipeline4",
+	"properties": {
+		"activities": [
+			{
+				"name": "Until1",
+				"type": "Until",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('api_get_status'),'success')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Wait30sec",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 30
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "get_call",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "api_get_status",
+								"value": {
+									"value": "@activity('get_call').output.status",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "get_call",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Wait30sec",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "https://svmddbt01.westfieldgrp.corp:8080/task-status/0c4c84cb-e901-450f-830a-050fc225fc42",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "shir-onpremconnection",
+									"type": "IntegrationRuntimeReference"
+								}
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			}
+		],
+		"variables": {
+			"api_get_status": {
+				"type": "String",
+				"defaultValue": "running"
+			}
+		},
+		"folder": {
+			"name": "poc_debug"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-10T02:53:48Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

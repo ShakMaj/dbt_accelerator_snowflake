@@ -1,0 +1,380 @@
+{
+	"name": "pl_master_landingzone_to_bronzezone_adf",
+	"properties": {
+		"activities": [
+			{
+				"name": "new trigger",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "get_active_trigger",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('get_active_trigger').output.firstRow.adf_trigger_running,'0')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 5
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "exec_landingadls_to_bronzetransient",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "get_trigger_log_id",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_child_landingzone_adls_bronzezone_tansient_adf",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"dataload_group_code": {
+										"value": "@pipeline().parameters.dataload_group_code",
+										"type": "Expression"
+									},
+									"dataload_group_id": {
+										"value": "@pipeline().parameters.dataload_group_id",
+										"type": "Expression"
+									},
+									"adf_trigger_log_id": {
+										"value": "@activity('get_trigger_log_id').output.firstRow.ADF_TRIGGER_LOG_ID",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "exec_landingadls_to_bronzepersistent",
+							"type": "ExecutePipeline",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzetransient",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_placeholder_wait5sec",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						},
+						{
+							"name": "exec_landingadls_to_bronzerefined",
+							"type": "ExecutePipeline",
+							"state": "Inactive",
+							"onInactiveMarkAs": "Succeeded",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzepersistent",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_placeholder_wait5sec",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						},
+						{
+							"name": "log_trigger_start",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "snowflake_azure_pipeline_audit",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT INTO logging.adf_trigger_log\n(dataload_group_id\n,dataload_group_code\n,trigger_UUID\n,trigger_name\n,pipeline_UUID\n,pipeline_name\n,trigger_status\n,trigger_type\n,parameter_name\n,parameter_value\n,start_datetime\n,created_by\n,created_datetime\n,modified_by\n,modified_datetime)\nVALUES\n(\n\t@{pipeline().parameters.dataload_group_id}\n,'@{pipeline().parameters.dataload_group_code}'\n,'@{pipeline().TriggerId}'\n,'@{pipeline().TriggerName}'\n,'@{pipeline().RunId}'\n,'@{pipeline().Pipeline}'\n,'running'\n,'@{pipeline().TriggerType}'\n,'dataload_group_code'\n,'@{pipeline().parameters.dataload_group_code}'\n,to_timestamp_ntz('@{formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd hh:mm:ss')}') \n,'Slalom'\n,getdate()\n,'Slalom'\n,getdate()\n);\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "log_trigger_bronzetransient_failed",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzetransient",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "snowflake_azure_pipeline_audit",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE logging.adf_trigger_log\nSET\ntrigger_status = 'failed'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\n,trigger_error_code = '@{activity('exec_landingadls_to_bronzetransient').error.errorCode}'\n,trigger_error_message = '@{replace(activity('exec_landingadls_to_bronzetransient').error.message,'''','')}'\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "log_trigger_success",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzerefined",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "snowflake_azure_pipeline_audit",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE logging.adf_trigger_log\nSET\ntrigger_status = 'Success'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "log_trigger_bronzepersistent_failed",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzepersistent",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "snowflake_azure_pipeline_audit",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE logging.adf_trigger_log\nSET\ntrigger_status = 'failed'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\n,trigger_error_code = '@{activity('exec_landingadls_to_bronzepersistent').error.errorCode}'\n,trigger_error_message = '@{replace(activity('exec_landingadls_to_bronzepersistent').error.message,'''','')}'\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "log_trigger_bronzerefined_failed",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "exec_landingadls_to_bronzerefined",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "snowflake_azure_pipeline_audit",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE logging.adf_trigger_log\nSET\ntrigger_status = 'failed'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\n,trigger_error_code = '@{activity('exec_landingadls_to_bronzerefined').error.errorCode}'\n,trigger_error_message = '@{replace(activity('exec_landingadls_to_bronzerefined').error.message,'''','')}'\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "get_trigger_log_id",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "log_trigger_start",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SnowflakeV2Source",
+									"query": {
+										"value": "SELECT top 1 * FROM LOGGING.adf_trigger_log\nwhere dataload_group_code = '@{pipeline().parameters.dataload_group_code}' and trigger_status = 'running' order by adf_trigger_log_id desc;",
+										"type": "Expression"
+									},
+									"exportSettings": {
+										"type": "SnowflakeExportCopyCommand"
+									}
+								},
+								"dataset": {
+									"referenceName": "snowflake_pipeline_audit_object",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "get_active_trigger",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": {
+							"value": "select count(1) adf_trigger_running from logging.adf_trigger_log\nwhere dataload_group_code ='@{pipeline().parameters.dataload_group_code}'\nand trigger_status ='running'",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "snowflake_pipeline_audit_object",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"dataload_group_id": {
+				"type": "int",
+				"defaultValue": 0
+			},
+			"dataload_group_code": {
+				"type": "string",
+				"defaultValue": "test"
+			}
+		},
+		"folder": {
+			"name": "landingzone_to_bronzezone_ADFcopyactivity"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-09T15:51:37Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
