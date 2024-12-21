@@ -13,3 +13,10 @@ Try running the following commands:
 - Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
 - Find [dbt events](https://events.getdbt.com) near you
 - Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+
+
+
+### For Elimentary
+- Need to Install pip install python-certifi-win32
+- DBT_RUN_RESULTS -     Capture the run log from DBT
+- ALERTS_DBT_TESTS - To check tests result

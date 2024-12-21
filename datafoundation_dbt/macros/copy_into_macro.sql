@@ -7,7 +7,7 @@
     ON_ERROR = 'SKIP_FILE'
     FORCE = {{ force_load }}
     INCLUDE_METADATA = (
-    ingestdate = METADATA$START_SCAN_TIME, filename = METADATA$FILENAME
+    AUDIT_INGEST_DATETIME = METADATA$START_SCAN_TIME, ADLS_FILENAME = METADATA$FILENAME
     )
     PATTERN =  '{{ pattern }}';
 

@@ -1,0 +1,87 @@
+2024-12-18 22:38:02 — INFO — Running with edr=0.16.1
+2024-12-18 22:38:02 — INFO — Installing packages for edr internal dbt package...
+2024-12-18 22:38:02 — INFO — Running dbt command --log-format json deps --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+2024-12-18 22:38:15 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_latest_invocation", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+[31;20m2024-12-18 22:38:15 — ERROR — Unable to get the latest invocation: Failed to run dbt command.
+Runtime Error
+  Could not find profile named 'elementary'[0m
+2024-12-18 22:38:15 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_adapter_type_and_unique_id", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+2024-12-18 22:38:15 — DEBUG — Could not get warehouse info.
+Traceback (most recent call last):
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\data_monitoring\data_monitoring.py", line 140, in _get_warehouse_info
+    self.internal_dbt_runner.run_operation(
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 177, in run_operation
+    result = self._run_command(
+             ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 114, in _run_command
+    result = self._inner_run_command(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\api_dbt_runner.py", line 53, in _inner_run_command
+    raise DbtCommandError(
+elementary.exceptions.exceptions.DbtCommandError: Failed to run dbt command.
+Runtime Error
+  Could not find profile named 'elementary'
+2024-12-18 22:38:15 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_elementary_database_and_schema", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+[31;20m2024-12-18 22:38:15 — ERROR — Failed to parse Elementary's database and schema.[0m
+2024-12-18 22:38:15 — INFO — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_test_results", "macro_args": {"days_back": 7, "invocations_per_test": 720, "disable_passed_test_metrics": false}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+[31;20m2024-12-18 22:38:15 — ERROR — Could not generate the report - Error: Failed to run dbt command.
+Runtime Error
+  Could not find profile named 'elementary'
+Please reach out to our community for help with this issue.[0m
+Traceback (most recent call last):
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\report\report.py", line 50, in get_report_data
+    tests_api = TestsAPI(
+                ^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\tests\tests.py", line 43, in __init__
+    self.test_results_db_rows = self._get_test_results_db_rows(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\tests\tests.py", line 55, in _get_test_results_db_rows
+    return self.tests_fetcher.get_all_test_results_db_rows(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\fetchers\tests\tests.py", line 25, in get_all_test_results_db_rows
+    run_operation_response = self.dbt_runner.run_operation(
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 177, in run_operation
+    result = self._run_command(
+             ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 114, in _run_command
+    result = self._inner_run_command(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\api_dbt_runner.py", line 53, in _inner_run_command
+    raise DbtCommandError(
+elementary.exceptions.exceptions.DbtCommandError: Failed to run dbt command.
+Runtime Error
+  Could not find profile named 'elementary'
+2024-12-18 22:50:57 — INFO — Running with edr=0.16.1
+2024-12-18 22:50:57 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_latest_invocation", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+[31;20m2024-12-18 22:51:10 — ERROR — Unable to get the latest invocation: Failed to run dbt command.[0m
+2024-12-18 22:51:10 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_adapter_type_and_unique_id", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+2024-12-18 22:51:12 — DEBUG — Result bytes size for command '['--log-format', 'json', 'run-operation', 'elementary.log_macro_results', '--args', '{"macro_name": "elementary_cli.get_adapter_type_and_unique_id", "macro_args": {}}', '--project-dir', 'C:\\Users\\a702385\\OneDrive - Ohio Farmers Insurance Company\\Code\\Enterprise Data Platform\\dbt-env\\Lib\\site-packages\\elementary\\monitor\\dbt_project']' is 488
+2024-12-18 22:51:12 — DEBUG — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_elementary_database_and_schema", "macro_args": {}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+2024-12-18 22:51:15 — DEBUG — Result bytes size for command '['--log-format', 'json', 'run-operation', 'elementary.log_macro_results', '--args', '{"macro_name": "elementary_cli.get_elementary_database_and_schema", "macro_args": {}}', '--project-dir', 'C:\\Users\\a702385\\OneDrive - Ohio Farmers Insurance Company\\Code\\Enterprise Data Platform\\dbt-env\\Lib\\site-packages\\elementary\\monitor\\dbt_project']' is 466
+2024-12-18 22:51:15 — INFO — Elementary's database and schema: '"PIPELINE_AUDIT_DEV.DATAQUALITY"'
+2024-12-18 22:51:15 — INFO — Running dbt command --log-format json run-operation elementary.log_macro_results --args {"macro_name": "elementary_cli.get_test_results", "macro_args": {"days_back": 7, "invocations_per_test": 720, "disable_passed_test_metrics": false}} --project-dir C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\dbt_project
+[31;20m2024-12-18 22:51:18 — ERROR — Could not generate the report - Error: Failed to run dbt command.
+Please reach out to our community for help with this issue.[0m
+Traceback (most recent call last):
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\report\report.py", line 50, in get_report_data
+    tests_api = TestsAPI(
+                ^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\tests\tests.py", line 43, in __init__
+    self.test_results_db_rows = self._get_test_results_db_rows(
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\api\tests\tests.py", line 55, in _get_test_results_db_rows
+    return self.tests_fetcher.get_all_test_results_db_rows(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\monitor\fetchers\tests\tests.py", line 25, in get_all_test_results_db_rows
+    run_operation_response = self.dbt_runner.run_operation(
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 177, in run_operation
+    result = self._run_command(
+             ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\command_line_dbt_runner.py", line 114, in _run_command
+    result = self._inner_run_command(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\a702385\OneDrive - Ohio Farmers Insurance Company\Code\Enterprise Data Platform\dbt-env\Lib\site-packages\elementary\clients\dbt\api_dbt_runner.py", line 53, in _inner_run_command
+    raise DbtCommandError(
+elementary.exceptions.exceptions.DbtCommandError: Failed to run dbt command.

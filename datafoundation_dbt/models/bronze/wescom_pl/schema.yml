@@ -1,0 +1,29 @@
+
+#models:
+#  - name: addr
+#    columns:
+#      - name: ST_CD
+#        data_tests:
+#          - unique
+#          - not_null
+
+
+models:
+  - name: addr
+    columns:
+      - name: ST_CD
+        data_tests:
+          - dbt_expectations.expect_column_values_to_not_be_null:
+              name: dbt_test_validation
+              row_condition: "ADDR_ID is not null"
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              name: dbt_test_validation
+              column_type: date
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              name: dbt_test_validation
+              value_set: ["NY", "CA", "TX", "FL"]
+          - dbt_expectations.expect_column_value_lengths_to_be_between:
+              name: dbt_test_validation
+              min_value: 2
+              max_value: 3
+
