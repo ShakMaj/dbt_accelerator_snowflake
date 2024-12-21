@@ -5,3 +5,4 @@ logs/
 dbt-env/
 test/
 seeds/
+security/
