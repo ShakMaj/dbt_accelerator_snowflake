@@ -1,0 +1,6 @@
+{
+	"name": "shir-onpremconnection",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

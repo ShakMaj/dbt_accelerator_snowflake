@@ -1,0 +1,17 @@
+{
+	"name": "Snowflake_aws_poc",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SnowflakeV2",
+		"typeProperties": {
+			"authenticationType": "KeyPair",
+			"accountIdentifier": "wla98892-wfld",
+			"user": "SVC-SF-DBT",
+			"database": "DEV",
+			"warehouse": "VWH_DEVELOPER_STANDARD",
+			"role": "SFR-D-SVC-SF-DBT@WESTFIELDGRP.ONMICROSOFT.COM",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEY4MUM3QTA0LUU2RjQtNENEMS1CMzE5LTZFRDVFN0NFOUMzM182YjMyZWZmYi1lMWU4LTQyNzEtYjc3Ni1lNTVlYTM2MTAyZDciDQp9"
+		}
+	}
+}

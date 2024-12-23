@@ -1,0 +1,122 @@
+{
+	"name": "pl_landing_getfilemetadata",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "parquet",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"structure",
+						"itemName",
+						"itemType",
+						"columnCount",
+						"size"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "ParquetReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(string(pipeline().parameters.current_object_schema),string(activity('Get Metadata1').output.structure))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Stored procedure1",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[config].[sp_load_object_catalog_version]",
+								"storedProcedureParameters": {
+									"connection_id": {
+										"value": "1",
+										"type": "Int32"
+									},
+									"object_catalog_id": {
+										"value": "1",
+										"type": "Int32"
+									},
+									"object_catalog_version": {
+										"value": "1",
+										"type": "Int32"
+									},
+									"object_name": {
+										"value": {
+											"value": "@activity('Get Metadata1').output.itemName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"object_schema_script": {
+										"value": {
+											"value": "@{activity('Get Metadata1').output.structure}",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "datamgmt_azuresqldb",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"current_object_schema": {
+				"type": "string",
+				"defaultValue": "xyz"
+			}
+		},
+		"folder": {
+			"name": "poc_debug"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-09T06:19:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

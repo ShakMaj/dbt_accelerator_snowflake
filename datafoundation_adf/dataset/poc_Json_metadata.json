@@ -1,0 +1,24 @@
+{
+	"name": "poc_Json_metadata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "landing_zone",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "poc_datasets"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "LOAD00000001.dfm",
+				"folderPath": "WescomTest/TDB2PMED.POL_RT_SNPSHT_XML",
+				"fileSystem": "qlikreplicatepoc"
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

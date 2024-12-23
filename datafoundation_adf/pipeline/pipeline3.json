@@ -1,0 +1,155 @@
+{
+	"name": "pipeline3",
+	"properties": {
+		"activities": [
+			{
+				"name": "post_call",
+				"type": "WebActivity",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"disableCertValidation": false,
+					"url": "https://svmddbt01.westfieldgrp.corp:8080/run-dbt",
+					"connectVia": {
+						"referenceName": "shir-onpremconnection",
+						"type": "IntegrationRuntimeReference"
+					},
+					"body": {
+						"model_name": "my_first_dbt_model"
+					}
+				}
+			},
+			{
+				"name": "Until1",
+				"type": "Until",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "post_call",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('get_call').output.status,'success')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "get_call",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Wait1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat('https://svmddbt01.westfieldgrp.corp:8080/task-status/',activity('post_call').output.task_id)",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "shir-onpremconnection",
+									"type": "IntegrationRuntimeReference"
+								}
+							}
+						},
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 60
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "post_call_copy1",
+				"type": "WebActivity",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"disableCertValidation": false,
+					"url": "https://svmddbt01.westfieldgrp.corp:8080/run-dbt",
+					"connectVia": {
+						"referenceName": "shir-onpremconnection",
+						"type": "IntegrationRuntimeReference"
+					},
+					"body": {
+						"model_name": "tdb2pmed_actv_snapshot"
+					}
+				}
+			},
+			{
+				"name": "get_call_copy1",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": {
+						"value": "https://svmddbt01.westfieldgrp.corp:8080/task-status/a842ba70-5e7b-4281-99f3-7e1768a00e0b",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "shir-onpremconnection",
+						"type": "IntegrationRuntimeReference"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "poc_debug"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-10T04:19:46Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,9 @@
+{
+	"name": "WFEEUS2-DEVDatamgmt01-ADF",
+	"location": "eastus2",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "78ec39d3-f9d0-4cb2-8d0a-455212ab37c3",
+		"tenantId": "51d990ea-a0d3-4c05-ae31-d87c6787dd3e"
+	}
+}

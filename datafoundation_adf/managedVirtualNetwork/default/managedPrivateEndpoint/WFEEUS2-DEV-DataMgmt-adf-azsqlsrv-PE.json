@@ -1,0 +1,10 @@
+{
+	"name": "WFEEUS2-DEV-DataMgmt-adf-azsqlsrv-PE",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/311790ab-8287-4774-8198-cddb52005e34/resourceGroups/EUS2-DEVDataMgmt-SHRD-RG/providers/Microsoft.Sql/servers/wfeeus2-devdatamgmt-azsqlsrv",
+		"groupId": "sqlServer",
+		"fqdns": [
+			"wfeeus2-devdatamgmt-azsqlsrv.database.windows.net"
+		]
+	}
+}

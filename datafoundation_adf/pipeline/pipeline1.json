@@ -1,0 +1,311 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "log_pipeline_start",
+				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Failed",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "logging.sp_adf_pipeline_log",
+						"storedProcedureParameters": {
+							"adf_trigger_log_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.adf_trigger_log_id",
+									"type": "Expression"
+								}
+							},
+							"dataload_group_code": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.dataload_group_code",
+									"type": "Expression"
+								}
+							},
+							"dataload_group_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.dataload_group_id",
+									"type": "Expression"
+								}
+							},
+							"DML_Action": {
+								"type": "String",
+								"value": "i"
+							},
+							"end_dateTime": {
+								"type": "Datetime",
+								"value": null
+							},
+							"parent_pipeline_name": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline()?.TriggeredByPipelineName",
+									"type": "Expression"
+								}
+							},
+							"parent_pipeline_UUID": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline()?.TriggeredByPipelineRunId",
+									"type": "Expression"
+								}
+							},
+							"pipeline_error_code": {
+								"type": "String",
+								"value": null
+							},
+							"pipeline_error_message": {
+								"type": "String",
+								"value": null
+							},
+							"pipeline_name": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							},
+							"pipeline_status": {
+								"type": "String",
+								"value": "running"
+							},
+							"pipeline_UUID": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							},
+							"start_dateTime": {
+								"type": "Datetime",
+								"value": {
+									"value": "@pipeline().TriggerTime",
+									"type": "Expression"
+								}
+							},
+							"trigger_name": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().TriggerName",
+									"type": "Expression"
+								}
+							},
+							"trigger_UUID": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().TriggerId",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "azure_sql_procedure",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "log_pl_bronzetransient_failed_retrieve_list",
+				"type": "Lookup",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "log_pipeline_start",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.01:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "logging.sp_adf_pipeline_log",
+						"storedProcedureParameters": {
+							"adf_trigger_log_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.adf_trigger_log_id",
+									"type": "Expression"
+								}
+							},
+							"dataload_group_code": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.dataload_group_code",
+									"type": "Expression"
+								}
+							},
+							"dataload_group_id": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.dataload_group_id",
+									"type": "Expression"
+								}
+							},
+							"DML_Action": {
+								"type": "String",
+								"value": "u"
+							},
+							"end_dateTime": {
+								"type": "Datetime",
+								"value": {
+									"value": "@utcNow()",
+									"type": "Expression"
+								}
+							},
+							"parent_pipeline_name": {
+								"type": "String",
+								"value": null
+							},
+							"parent_pipeline_UUID": {
+								"type": "String",
+								"value": null
+							},
+							"pipeline_error_code": {
+								"type": "String",
+								"value": {
+									"value": "@activity('log_pipeline_start').error.errorCode",
+									"type": "Expression"
+								}
+							},
+							"pipeline_error_message": {
+								"type": "String",
+								"value": {
+									"value": "@activity('log_pipeline_start').error.message",
+									"type": "Expression"
+								}
+							},
+							"pipeline_name": {
+								"type": "String",
+								"value": null
+							},
+							"pipeline_status": {
+								"type": "String",
+								"value": "failed"
+							},
+							"pipeline_UUID": {
+								"type": "String",
+								"value": null
+							},
+							"start_dateTime": {
+								"type": "Datetime",
+								"value": null
+							},
+							"trigger_name": {
+								"type": "String",
+								"value": null
+							},
+							"trigger_UUID": {
+								"type": "String",
+								"value": null
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "azure_sql_procedure",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://svmddbt01.westfieldgrp.corp:8080",
+					"connectVia": {
+						"referenceName": "shir-onpremconnection",
+						"type": "IntegrationRuntimeReference"
+					},
+					"body": "{modelname = 'samplemodel'}"
+				}
+			},
+			{
+				"name": "Web2",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://wfeeus2-devdatamgmt-kv.vault.azure.net/secrets/test/c4b37f0ab8414b34b81bab595e7914d4?api-version=7.5",
+					"connectVia": {
+						"referenceName": "ir-azure-managedvnet-runtime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"dataload_group_code": {
+				"type": "string",
+				"defaultValue": "test"
+			},
+			"adf_trigger_log_id": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"dataload_group_id": {
+				"type": "int",
+				"defaultValue": 1
+			}
+		},
+		"folder": {
+			"name": "poc_debug"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-10T18:44:15Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

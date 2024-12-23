@@ -1,0 +1,10 @@
+{
+	"name": "WFEEUS2-DEV-DataMgmt-adf-adlsdfs-PE",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/311790ab-8287-4774-8198-cddb52005e34/resourceGroups/EUS2-DEVDataMgmt-SHRD-RG/providers/Microsoft.Storage/storageAccounts/wfeeus2devdatamgmtadls01",
+		"groupId": "dfs",
+		"fqdns": [
+			"wfeeus2devdatamgmtadls01.dfs.core.windows.net"
+		]
+	}
+}

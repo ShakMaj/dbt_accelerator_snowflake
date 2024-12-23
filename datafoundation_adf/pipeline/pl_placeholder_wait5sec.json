@@ -1,0 +1,22 @@
+{
+	"name": "pl_placeholder_wait5sec",
+	"properties": {
+		"activities": [
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 5
+				}
+			}
+		],
+		"folder": {
+			"name": "reference_pipeline"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-11-24T03:41:11Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

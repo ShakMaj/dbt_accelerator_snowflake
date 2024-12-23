@@ -1,0 +1,330 @@
+{
+	"name": "dbt_call_flaskapp",
+	"properties": {
+		"activities": [
+			{
+				"name": "post model name to run dbt model",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "get_activity_data_log_id",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://svmddbt01.westfieldgrp.corp:8080/run-dbt",
+					"connectVia": {
+						"referenceName": "shir-onpremconnection",
+						"type": "IntegrationRuntimeReference"
+					},
+					"body": {
+						"value": "@concat('{\"model_name\":\"',pipeline().parameters.dbt_model_name,'\"}')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Until1",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "post model name to run dbt model",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('api_get_status'),'success')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Wait30sec",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 30
+							}
+						},
+						{
+							"name": "get_status_task",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Wait30sec",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "GET",
+								"url": {
+									"value": "@concat('https://svmddbt01.westfieldgrp.corp:8080/task-status/',activity('post model name to run dbt model').output.task_id)",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "shir-onpremconnection",
+									"type": "IntegrationRuntimeReference"
+								}
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "get_status_task",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "api_get_status",
+								"value": {
+									"value": "@activity('get_status_task').output.status",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "log_dbt_activity_success",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Until1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "snowflake_azure_pipeline_audit",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE logging.dataload_activity_log\nSET\ndataload_activity_status = 'success'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}\nand adf_trigger_log_id = @{pipeline().parameters.adf_trigger_log_id}\nand adf_pipeline_log_id =@{pipeline().parameters.adf_pipeline_log_id}\nand dataload_activity_log_id = @{activity('get_activity_data_log_id').output.firstRow.DATALOAD_ACTIVITY_LOG_ID}\nand dataload_activity_status = 'running'",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "log_dbt_activity_failed",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Until1",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "snowflake_azure_pipeline_audit",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE logging.dataload_activity_log\nSET\ndataload_activity_status = 'failed'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\n,dataload_activity_error_code = '@{activity('get_status_task').error.errorCode}'\n,dataload_activity_error_message = '@{replace(activity('get_status_task').error.message,'''','')}'\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}\nand adf_trigger_log_id = @{pipeline().parameters.adf_trigger_log_id}\nand adf_pipeline_log_id = @{pipeline().parameters.adf_pipeline_log_id}\nand dataload_activity_log_id = @{activity('get_activity_data_log_id').output.firstRow.DATALOAD_ACTIVITY_LOG_ID}\nand dataload_activity_status = 'running'",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "log_activity_start",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "snowflake_azure_pipeline_audit",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO logging.dataload_activity_log\n( ADF_TRIGGER_LOG_ID\n, ADF_PIPELINE_LOG_ID\n, DATALOAD_ACTIVITY_STATUS\n, DATALOAD_GROUP_ID\n, DATALOAD_GROUP_CODE\n, DATALOAD_ACTIVITY_ID\n, TRIGGER_UUID\n, TRIGGER_NAME\n, PIPELINE_UUID\n, PIPELINE_NAME\n, PARENT_PIPELINE_UUID\n, PARENT_PIPELINE_NAME\n, LOAD_TYPE\n, START_DATETIME\n, CREATED_BY\n, CREATED_DATETIME\n, MODIFIED_BY\n, MODIFIED_DATETIME)\nVALUES\n(\n@{pipeline().parameters.adf_trigger_log_id}\n,@{pipeline().parameters.adf_pipeline_log_id}\n,'running'\n,@{pipeline().parameters.dataload_group_id}\n,'@{pipeline().parameters.dataload_group_code}'\n,@{pipeline().parameters.dataload_activity_id}\n,'@{pipeline().TriggerId}'\n,'@{pipeline().TriggerName}'\n,'@{pipeline().RunId}'\n,'@{pipeline().Pipeline}'\n,'@{pipeline()?.TriggeredByPipelineRunId}'\n,'@{pipeline()?.TriggeredByPipelineName}'\n,'F'\n,to_timestamp_ntz('@{formatDateTime(pipeline().TriggerTime,'yyyy-MM-dd hh:mm:ss')}') \n,current_user()\n,getdate()\n,current_user()\n,getdate()\n);\n",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "get_activity_data_log_id",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "log_activity_start",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": {
+							"value": "SELECT top 1 * FROM LOGGING.dataload_activity_log\nwhere dataload_group_code = '@{pipeline().parameters.dataload_group_code}'\nand adf_trigger_log_id =@{pipeline().parameters.adf_trigger_log_id} \nand adf_pipeline_log_id = @{pipeline().parameters.adf_pipeline_log_id}\nand DATALOAD_ACTIVITY_ID = @{pipeline().parameters.dataload_activity_id}\nand dataload_activity_status = 'running' \norder by adf_trigger_log_id desc;",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "snowflake_pipeline_audit_object",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "log_activity_failed_to_get_id",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "get_activity_data_log_id",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "snowflake_azure_pipeline_audit",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE logging.dataload_activity_log\nSET\ndataload_activity_status = 'failed'\n,end_datetime = getdate()\n,modified_datetime = getdate()\n,modified_by = current_user()\n,dataload_activity_error_code = '@{activity('get_activity_data_log_id').error.errorCode}'\n,dataload_activity_error_message = '@{replace(activity('get_activity_data_log_id').error.message,'''','')}'\nWHERE dataload_group_id = @{pipeline().parameters.dataload_group_id}\nand adf_trigger_log_id = @{pipeline().parameters.adf_trigger_log_id}\nand adf_pipeline_log_id = @{pipeline().parameters.adf_pipeline_log_id}\nand dataload_activity_log_id = @{pipeline().parameters.dataload_activity_id}\nand dataload_activity_status = 'running'",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"dataload_group_id": {
+				"type": "int"
+			},
+			"adf_trigger_log_id": {
+				"type": "int"
+			},
+			"adf_pipeline_log_id": {
+				"type": "int"
+			},
+			"dataload_group_code": {
+				"type": "string"
+			},
+			"dataload_activity_id": {
+				"type": "int"
+			},
+			"dbt_model_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"api_get_status": {
+				"type": "String",
+				"defaultValue": "running"
+			}
+		},
+		"folder": {
+			"name": "reference_pipeline"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-10T05:02:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

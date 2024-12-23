@@ -1,0 +1,346 @@
+{
+	"name": "pl_copy_activity_parquet_snowflake_adf",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_getmetadata_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"container_name": "@pipeline().parameters.landing_container_name",
+							"folder_path": "@pipeline().parameters.landing_folder_path"
+						}
+					},
+					"fieldList": [
+						"itemName",
+						"itemType",
+						"exists",
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "ParquetReadSettings"
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('Get Metadata1').output.exists",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Copy Files to Archive",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "parquet copy to snowflake",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": {
+											"value": "@pipeline().parameters.landing_folder_path",
+											"type": "Expression"
+										},
+										"wildcardFileName": "*.parquet",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "ParquetReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings",
+										"copyBehavior": "PreserveHierarchy"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "landing_zone_dfs_parquet_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"container_name": {
+											"value": "@pipeline().parameters.landing_container_name",
+											"type": "Expression"
+										},
+										"folder_path": {
+											"value": "@pipeline().parameters.landing_folder_path",
+											"type": "Expression"
+										},
+										"filename_with_extension": "*.parquet"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "archive_landing_zone_dfs_parquet_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"container_name": {
+											"value": "@pipeline().parameters.archive_landing_container_name",
+											"type": "Expression"
+										},
+										"folder_path": {
+											"value": "@concat(pipeline().parameters.landing_folder_path,'/',formatDateTime(utcNow(),'yyyy'),'/',formatDateTime(utcNow(),'MM'),'/',formatDateTime(utcNow(),'dd'),'/',formatDateTime(utcNow(),'hh'))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "archive and delete source files",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Copy Files to Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "landing_zone_dfs_parquet_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"container_name": {
+											"value": "@pipeline().parameters.landing_container_name",
+											"type": "Expression"
+										},
+										"folder_path": {
+											"value": "@pipeline().parameters.landing_folder_path",
+											"type": "Expression"
+										},
+										"filename_with_extension": "*.parquet"
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFileName": "*.parquet",
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "parquet copy to snowflake",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"additionalColumns": [
+										{
+											"name": "SOURCE_FILE_PATH",
+											"value": "$$FILEPATH"
+										},
+										{
+											"name": "SOURCE_FILE_NAME",
+											"value": "$$FILENAME"
+										},
+										{
+											"name": "SOURCE_DATALOAD_GROUP_CODE",
+											"value": {
+												"value": "@pipeline().parameters.dataload_group_code",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"wildcardFolderPath": {
+											"value": "@pipeline().parameters.landing_folder_path",
+											"type": "Expression"
+										},
+										"wildcardFileName": "*.parquet",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "ParquetReadSettings"
+									}
+								},
+								"sink": {
+									"type": "SnowflakeV2Sink",
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand",
+										"storageIntegration": "AZURE_DEV"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "AzureBlobStorage",
+										"type": "LinkedServiceReference"
+									},
+									"path": "qlikreplicatepoc/WestcomAzureDataFactory/adf_pipeline_staging",
+									"enableCompression": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "landing_zone_blob_parquet_dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"container_name": {
+											"value": "@pipeline().parameters.landing_container_name",
+											"type": "Expression"
+										},
+										"folder_path": {
+											"value": "@pipeline().parameters.landing_folder_path",
+											"type": "Expression"
+										},
+										"filename_with_extension": {
+											"value": "@pipeline().parameters.landing_file_extension",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "snowflake_object",
+									"type": "DatasetReference",
+									"parameters": {
+										"schemaname": {
+											"value": "@pipeline().parameters.target_schema_name",
+											"type": "Expression"
+										},
+										"tablename": {
+											"value": "@pipeline().parameters.target_table_name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"current_object_schema": {
+				"type": "string"
+			},
+			"landing_file_type": {
+				"type": "string",
+				"defaultValue": "parquet"
+			},
+			"landing_container_name": {
+				"type": "string"
+			},
+			"landing_folder_path": {
+				"type": "string"
+			},
+			"landing_file_extension": {
+				"type": "string"
+			},
+			"archive_landing_container_name": {
+				"type": "string"
+			},
+			"dataload_group_code": {
+				"type": "string"
+			},
+			"target_table_name": {
+				"type": "string"
+			},
+			"target_schema_name": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "landingzone_to_bronzezone_ADFcopyactivity"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-12-10T01:36:35Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

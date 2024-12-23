@@ -1,0 +1,19 @@
+{
+	"name": "datamgmt_azuresqldb",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "wfeeus2-devdatamgmt-azsqlsrv.database.windows.net",
+			"database": "wfeeus2-devdatamgmt-config-azsqldb",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SystemAssignedManagedIdentity"
+		},
+		"connectVia": {
+			"referenceName": "ir-azure-managedvnet-runtime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
