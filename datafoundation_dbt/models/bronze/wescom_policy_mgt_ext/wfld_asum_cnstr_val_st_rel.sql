@@ -5,28 +5,21 @@
     tags=["bronze", 'wescom_policy_mgt_ext'],
     incremental_strategy = 'merge',
     pre_hook= [
-        "delete from bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient",
-        "DROP TABLE IF EXISTS bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel",
-        "CREATE TABLE IF NOT EXISTS bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel AS SELECT * FROM bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient WHERE 1 = 0",
-        "ALTER TABLE bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel ADD COLUMN HASH_KEY STRING",
-        "{{ copy_into_macro('bronze_zone_dev.wescom_policy_mgt_ext.wescom_policy_mgt_ext_stage', 'bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient', true, '.*WescomParquet/TDB2PMED.WFLD_ASUM_CNSTR_VAL_ST_REL/.*.parquet') }}",
-        "UPDATE bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER() WHERE AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_CREATED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient)"
-    ],
-    post_hook= [
-        "CREATE OR REPLACE VIEW publish_zone_dev.BRONZE_wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel AS SELECT * FROM bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient"
+        "{{ copy_into_macro('bronze_zone_dev.wescom_policy_mgt_ext.wescom_policy_mgt_ext_stage', 'bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient', false, '(?i)TDB2PMED.WFLD_ASUM_CNSTR_VAL_ST_REL/.*.parquet') }}",
+         "UPDATE bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER(), HASH_KEY_COLUMNS = SHA2(CONCAT(ST_CD,' | ',EFF_FROM_DT,' | ',WFLD_COV_CNSTR_VAL_ID,' | ',ASUM_CNSTR_VAL_ID)) WHERE HASH_KEY_COLUMNS IS NULL"
     ]
 ) }}
 
 -- Step 1: Source Data with FLAG Calculation
 WITH wfld_asum_cnstr_val_st_rel_source_data AS (
     SELECT 
-        -- Dynamically get all columns from the source table except 'CREATED_BY' and 'CREATED_DATETIME'
+        -- Dynamically get all columns from the source table except 'AUDIT_CREATED_BY' and 'AUDIT_CREATED_DATETIME'
         {{ get_dynamic_columns('WESCOM_POLICY_MGT_EXT', 'WFLD_ASUM_CNSTR_VAL_ST_REL_TRANSIENT') }},
     FROM 
         bronze_zone_dev.wescom_policy_mgt_ext.wfld_asum_cnstr_val_st_rel_transient s
 
         {% if is_incremental() %}
-             WHERE s.AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
+             WHERE s.INGESTDATE > (SELECT COALESCE(MAX(MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
         {% endif %}
 ),
 
@@ -36,10 +29,9 @@ source_and_target_ids AS (
         s.ST_CD AS SOURCE_ST_CD, s.EFF_FROM_DT AS SOURCE_EFF_FROM_DT, s.WFLD_COV_CNSTR_VAL_ID AS SOURCE_WFLD_COV_CNSTR_VAL_ID, s.ASUM_CNSTR_VAL_ID AS SOURCE_ASUM_CNSTR_VAL_ID,  -- Source IDs
         t.ST_CD AS TARGET_ST_CD, t.EFF_FROM_DT AS TARGET_EFF_FROM_DT, t.WFLD_COV_CNSTR_VAL_ID AS TARGET_WFLD_COV_CNSTR_VAL_ID, t.ASUM_CNSTR_VAL_ID AS TARGET_ASUM_CNSTR_VAL_ID,  -- Target IDs
         CASE 
-            --WHEN t.ST_CD OR t.EFF_FROM_DT OR t.WFLD_COV_CNSTR_VAL_ID OR t.ASUM_CNSTR_VAL_ID IS NULL THEN 'I'  -- Insert if no matching target ID
-            WHEN TO_CHAR(t.ST_CD) OR TO_CHAR(t.EFF_FROM_DT) OR TO_CHAR(t.WFLD_COV_CNSTR_VAL_ID) OR TO_CHAR(t.ASUM_CNSTR_VAL_ID) IS NULL THEN 'I'
+            WHEN t.ST_CD OR t.EFF_FROM_DT OR t.WFLD_COV_CNSTR_VAL_ID OR t.ASUM_CNSTR_VAL_ID IS NULL THEN 'I'  -- Insert if no matching target ID
             ELSE 'U'  -- Update if target ID exists
-        END AS UPSERT_FLAG
+        END AS FLAG
     FROM wfld_asum_cnstr_val_st_rel_source_data s
     LEFT JOIN {{ this }} t
     ON s.ST_CD = t.ST_CD AND s.EFF_FROM_DT = t.EFF_FROM_DT AND s.WFLD_COV_CNSTR_VAL_ID = t.WFLD_COV_CNSTR_VAL_ID AND s.ASUM_CNSTR_VAL_ID = t.ASUM_CNSTR_VAL_ID
@@ -51,7 +43,7 @@ joined_data AS (
         s.*,
         t.AUDIT_CREATED_BY AS AUDIT_CREATED_BY,
         t.AUDIT_CREATED_DATETIME AS AUDIT_CREATED_DATETIME,
-        st.UPSERT_FLAG AS UPSERT_FLAG
+        st.FLAG AS FLAG
     FROM wfld_asum_cnstr_val_st_rel_source_data s
     LEFT JOIN source_and_target_ids st
         ON s.ST_CD = st.SOURCE_ST_CD AND s.EFF_FROM_DT = st.SOURCE_EFF_FROM_DT AND s.WFLD_COV_CNSTR_VAL_ID = st.SOURCE_WFLD_COV_CNSTR_VAL_ID AND s.ASUM_CNSTR_VAL_ID = st.SOURCE_ASUM_CNSTR_VAL_ID
@@ -66,18 +58,18 @@ SELECT
     {{ get_dynamic_columns('WESCOM_POLICY_MGT_EXT', 'WFLD_ASUM_CNSTR_VAL_ST_REL_TRANSIENT') }}
     
     -- Include the FLAG and calculate the HASH_KEY
-    , UPSERT_FLAG
-    , SHA2(CONCAT(ST_CD, EFF_FROM_DT, WFLD_COV_CNSTR_VAL_ID, ASUM_CNSTR_VAL_ID,'|'), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
+    , FLAG
+    , SHA2(CONCAT(ST_CD, EFF_FROM_DT, WFLD_COV_CNSTR_VAL_ID, ASUM_CNSTR_VAL_ID), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
 
     -- Set CREATED_DATETIME only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_TIMESTAMP() 
+        WHEN FLAG = 'I' THEN CURRENT_TIMESTAMP() 
         ELSE AUDIT_CREATED_DATETIME  -- Keep the same value for updates
     END AS AUDIT_CREATED_DATETIME
     
     -- Set CREATED_BY only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_USER()  
+        WHEN FLAG = 'I' THEN CURRENT_USER()  
         ELSE AUDIT_CREATED_BY  -- Keep the same value for updates
     END AS AUDIT_CREATED_BY                          
 

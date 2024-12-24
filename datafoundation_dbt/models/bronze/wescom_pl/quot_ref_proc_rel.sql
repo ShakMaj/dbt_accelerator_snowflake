@@ -1,32 +1,25 @@
 {{ config(
     schema = 'wescom_pl',
     materialized = 'table',
-    transient = false,
     unique_key = 'QUOT_ID', 
     tags=["bronze", 'wescom_pl'],
     incremental_strategy = 'merge',
     pre_hook= [
-        "delete from bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient",
-        "DROP TABLE IF EXISTS bronze_zone_dev.wescom_pl.quot_ref_proc_rel",
-        "CREATE TABLE IF NOT EXISTS bronze_zone_dev.wescom_pl.quot_ref_proc_rel AS SELECT * FROM bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient WHERE 1 = 0",
-        "{{ copy_into_macro('bronze_zone_dev.wescom_pl.wescom_pl_stage', 'bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient', true, '(?i)TDB2WPLQ.QUOT_REF_PROC_REL/.*.parquet') }}",
+        "{{ copy_into_macro('bronze_zone_dev.wescom_pl.wescom_pl_stage', 'bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient', false, '(?i)TDB2WPLQ.QUOT_REF_PROC_REL/.*.parquet') }}",
          "UPDATE bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER(), HASH_KEY_COLUMNS = SHA2(CONCAT(QUOT_ID)) WHERE HASH_KEY_COLUMNS IS NULL"
-    ],
-    post_hook= [
-        "CREATE OR REPLACE VIEW publish_zone_dev.BRONZE_wescom_pl.quot_ref_proc_rel AS SELECT * FROM bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient"
     ]
 ) }}
 
 -- Step 1: Source Data with FLAG Calculation
 WITH quot_ref_proc_rel_source_data AS (
     SELECT 
-        -- Dynamically get all columns from the source table except 'CREATED_BY' and 'CREATED_DATETIME'
+        -- Dynamically get all columns from the source table except 'AUDIT_CREATED_BY' and 'AUDIT_CREATED_DATETIME'
         {{ get_dynamic_columns('WESCOM_PL', 'QUOT_REF_PROC_REL_TRANSIENT') }},
     FROM 
         bronze_zone_dev.wescom_pl.quot_ref_proc_rel_transient s
 
         {% if is_incremental() %}
-             WHERE s.AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
+             WHERE s.INGESTDATE > (SELECT COALESCE(MAX(MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
         {% endif %}
 ),
 
@@ -36,10 +29,9 @@ source_and_target_ids AS (
         s.QUOT_ID AS SOURCE_QUOT_ID,  -- Source IDs
         t.QUOT_ID AS TARGET_QUOT_ID,  -- Target IDs
         CASE 
-            --WHEN t.QUOT_ID IS NULL THEN 'I'  -- Insert if no matching target ID
-            WHEN TO_CHAR(t.QUOT_ID) IS NULL THEN 'I'
+            WHEN t.QUOT_ID IS NULL THEN 'I'  -- Insert if no matching target ID
             ELSE 'U'  -- Update if target ID exists
-        END AS UPSERT_FLAG
+        END AS FLAG
     FROM quot_ref_proc_rel_source_data s
     LEFT JOIN {{ this }} t
     ON s.QUOT_ID = t.QUOT_ID
@@ -51,7 +43,7 @@ joined_data AS (
         s.*,
         t.AUDIT_CREATED_BY AS AUDIT_CREATED_BY,
         t.AUDIT_CREATED_DATETIME AS AUDIT_CREATED_DATETIME,
-        st.UPSERT_FLAG AS UPSERT_FLAG
+        st.FLAG AS FLAG
     FROM quot_ref_proc_rel_source_data s
     LEFT JOIN source_and_target_ids st
         ON s.QUOT_ID = st.SOURCE_QUOT_ID
@@ -66,18 +58,18 @@ SELECT
     {{ get_dynamic_columns('WESCOM_PL', 'QUOT_REF_PROC_REL_TRANSIENT') }}
     
     -- Include the FLAG and calculate the HASH_KEY
-    , UPSERT_FLAG
-    , SHA2(CONCAT(QUOT_ID,'|'), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
+    , FLAG
+    , SHA2(CONCAT(QUOT_ID), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
 
     -- Set CREATED_DATETIME only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_TIMESTAMP() 
+        WHEN FLAG = 'I' THEN CURRENT_TIMESTAMP() 
         ELSE AUDIT_CREATED_DATETIME  -- Keep the same value for updates
     END AS AUDIT_CREATED_DATETIME
     
     -- Set CREATED_BY only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_USER()  
+        WHEN FLAG = 'I' THEN CURRENT_USER()  
         ELSE AUDIT_CREATED_BY  -- Keep the same value for updates
     END AS AUDIT_CREATED_BY                          
 

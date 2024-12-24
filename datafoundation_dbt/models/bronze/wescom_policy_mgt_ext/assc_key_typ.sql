@@ -5,28 +5,21 @@
     tags=["bronze", 'wescom_policy_mgt_ext'],
     incremental_strategy = 'merge',
     pre_hook= [
-        "delete from bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient",
-        "DROP TABLE IF EXISTS bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ",
-        "CREATE TABLE IF NOT EXISTS bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ AS SELECT * FROM bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient WHERE 1 = 0",
-        "ALTER TABLE bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ ADD COLUMN HASH_KEY STRING",
-        "{{ copy_into_macro('bronze_zone_dev.wescom_policy_mgt_ext.wescom_policy_mgt_ext_stage', 'bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient', true, '.*WescomParquet/TDB2PMED.ASSC_KEY_TYP/.*.parquet') }}",
-        "UPDATE bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER() WHERE AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_CREATED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient)"
-    ],
-    post_hook= [
-        "CREATE OR REPLACE VIEW publish_zone_dev.BRONZE_wescom_policy_mgt_ext.assc_key_typ AS SELECT * FROM bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient"
+        "{{ copy_into_macro('bronze_zone_dev.wescom_policy_mgt_ext.wescom_policy_mgt_ext_stage', 'bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient', false, '(?i)TDB2PMED.ASSC_KEY_TYP/.*.parquet') }}",
+         "UPDATE bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER(), HASH_KEY_COLUMNS = SHA2(CONCAT(ASSC_KEY_TYP)) WHERE HASH_KEY_COLUMNS IS NULL"
     ]
 ) }}
 
 -- Step 1: Source Data with FLAG Calculation
 WITH assc_key_typ_source_data AS (
     SELECT 
-        -- Dynamically get all columns from the source table except 'CREATED_BY' and 'CREATED_DATETIME'
+        -- Dynamically get all columns from the source table except 'AUDIT_CREATED_BY' and 'AUDIT_CREATED_DATETIME'
         {{ get_dynamic_columns('WESCOM_POLICY_MGT_EXT', 'ASSC_KEY_TYP_TRANSIENT') }},
     FROM 
         bronze_zone_dev.wescom_policy_mgt_ext.assc_key_typ_transient s
 
         {% if is_incremental() %}
-             WHERE s.AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
+             WHERE s.INGESTDATE > (SELECT COALESCE(MAX(MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
         {% endif %}
 ),
 
@@ -36,10 +29,9 @@ source_and_target_ids AS (
         s.ASSC_KEY_TYP AS SOURCE_ASSC_KEY_TYP,  -- Source IDs
         t.ASSC_KEY_TYP AS TARGET_ASSC_KEY_TYP,  -- Target IDs
         CASE 
-            --WHEN t.ASSC_KEY_TYP IS NULL THEN 'I'  -- Insert if no matching target ID
-            WHEN TO_CHAR(t.ASSC_KEY_TYP) IS NULL THEN 'I'
+            WHEN t.ASSC_KEY_TYP IS NULL THEN 'I'  -- Insert if no matching target ID
             ELSE 'U'  -- Update if target ID exists
-        END AS UPSERT_FLAG
+        END AS FLAG
     FROM assc_key_typ_source_data s
     LEFT JOIN {{ this }} t
     ON s.ASSC_KEY_TYP = t.ASSC_KEY_TYP
@@ -51,7 +43,7 @@ joined_data AS (
         s.*,
         t.AUDIT_CREATED_BY AS AUDIT_CREATED_BY,
         t.AUDIT_CREATED_DATETIME AS AUDIT_CREATED_DATETIME,
-        st.UPSERT_FLAG AS UPSERT_FLAG
+        st.FLAG AS FLAG
     FROM assc_key_typ_source_data s
     LEFT JOIN source_and_target_ids st
         ON s.ASSC_KEY_TYP = st.SOURCE_ASSC_KEY_TYP
@@ -66,18 +58,18 @@ SELECT
     {{ get_dynamic_columns('WESCOM_POLICY_MGT_EXT', 'ASSC_KEY_TYP_TRANSIENT') }}
     
     -- Include the FLAG and calculate the HASH_KEY
-    , UPSERT_FLAG
-    , SHA2(CONCAT(ASSC_KEY_TYP,'|'), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
+    , FLAG
+    , SHA2(CONCAT(ASSC_KEY_TYP), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
 
     -- Set CREATED_DATETIME only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_TIMESTAMP() 
+        WHEN FLAG = 'I' THEN CURRENT_TIMESTAMP() 
         ELSE AUDIT_CREATED_DATETIME  -- Keep the same value for updates
     END AS AUDIT_CREATED_DATETIME
     
     -- Set CREATED_BY only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_USER()  
+        WHEN FLAG = 'I' THEN CURRENT_USER()  
         ELSE AUDIT_CREATED_BY  -- Keep the same value for updates
     END AS AUDIT_CREATED_BY                          
 

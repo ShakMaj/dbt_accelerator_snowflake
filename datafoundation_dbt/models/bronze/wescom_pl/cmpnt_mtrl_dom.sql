@@ -1,32 +1,25 @@
 {{ config(
     schema = 'wescom_pl',
     materialized = 'table',
-    transient = false,
     unique_key = 'STRCT_CMPNT_CD, CNSTR_MTRL_CD', 
     tags=["bronze", 'wescom_pl'],
     incremental_strategy = 'merge',
     pre_hook= [
-        "delete from bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient",
-        "DROP TABLE IF EXISTS bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom",
-        "CREATE TABLE IF NOT EXISTS bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom AS SELECT * FROM bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient WHERE 1 = 0",
-        "{{ copy_into_macro('bronze_zone_dev.wescom_pl.wescom_pl_stage', 'bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient', true, '(?i)TDB2WPLQ.CMPNT_MTRL_DOM/.*.parquet') }}",
+        "{{ copy_into_macro('bronze_zone_dev.wescom_pl.wescom_pl_stage', 'bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient', false, '(?i)TDB2WPLQ.CMPNT_MTRL_DOM/.*.parquet') }}",
          "UPDATE bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient SET AUDIT_CREATED_DATETIME = CURRENT_TIMESTAMP(), AUDIT_CREATED_BY = CURRENT_USER(), HASH_KEY_COLUMNS = SHA2(CONCAT(STRCT_CMPNT_CD,' | ',CNSTR_MTRL_CD)) WHERE HASH_KEY_COLUMNS IS NULL"
-    ],
-    post_hook= [
-        "CREATE OR REPLACE VIEW publish_zone_dev.BRONZE_wescom_pl.cmpnt_mtrl_dom AS SELECT * FROM bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient"
     ]
 ) }}
 
 -- Step 1: Source Data with FLAG Calculation
 WITH cmpnt_mtrl_dom_source_data AS (
     SELECT 
-        -- Dynamically get all columns from the source table except 'CREATED_BY' and 'CREATED_DATETIME'
+        -- Dynamically get all columns from the source table except 'AUDIT_CREATED_BY' and 'AUDIT_CREATED_DATETIME'
         {{ get_dynamic_columns('WESCOM_PL', 'CMPNT_MTRL_DOM_TRANSIENT') }},
     FROM 
         bronze_zone_dev.wescom_pl.cmpnt_mtrl_dom_transient s
 
         {% if is_incremental() %}
-             WHERE s.AUDIT_INGEST_DATETIME > (SELECT COALESCE(MAX(AUDIT_MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
+             WHERE s.INGESTDATE > (SELECT COALESCE(MAX(MODIFIED_DATETIME), TO_TIMESTAMP('1900-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS')) FROM {{ this }})  -- Filter only modified records
         {% endif %}
 ),
 
@@ -36,10 +29,9 @@ source_and_target_ids AS (
         s.STRCT_CMPNT_CD AS SOURCE_STRCT_CMPNT_CD, s.CNSTR_MTRL_CD AS SOURCE_CNSTR_MTRL_CD,  -- Source IDs
         t.STRCT_CMPNT_CD AS TARGET_STRCT_CMPNT_CD, t.CNSTR_MTRL_CD AS TARGET_CNSTR_MTRL_CD,  -- Target IDs
         CASE 
-            --WHEN t.STRCT_CMPNT_CD OR t.CNSTR_MTRL_CD IS NULL THEN 'I'  -- Insert if no matching target ID
-            WHEN TO_CHAR(t.STRCT_CMPNT_CD) OR TO_CHAR(t.CNSTR_MTRL_CD) IS NULL THEN 'I'
+            WHEN t.STRCT_CMPNT_CD OR t.CNSTR_MTRL_CD IS NULL THEN 'I'  -- Insert if no matching target ID
             ELSE 'U'  -- Update if target ID exists
-        END AS UPSERT_FLAG
+        END AS FLAG
     FROM cmpnt_mtrl_dom_source_data s
     LEFT JOIN {{ this }} t
     ON s.STRCT_CMPNT_CD = t.STRCT_CMPNT_CD AND s.CNSTR_MTRL_CD = t.CNSTR_MTRL_CD
@@ -51,7 +43,7 @@ joined_data AS (
         s.*,
         t.AUDIT_CREATED_BY AS AUDIT_CREATED_BY,
         t.AUDIT_CREATED_DATETIME AS AUDIT_CREATED_DATETIME,
-        st.UPSERT_FLAG AS UPSERT_FLAG
+        st.FLAG AS FLAG
     FROM cmpnt_mtrl_dom_source_data s
     LEFT JOIN source_and_target_ids st
         ON s.STRCT_CMPNT_CD = st.SOURCE_STRCT_CMPNT_CD AND s.CNSTR_MTRL_CD = st.SOURCE_CNSTR_MTRL_CD
@@ -66,18 +58,18 @@ SELECT
     {{ get_dynamic_columns('WESCOM_PL', 'CMPNT_MTRL_DOM_TRANSIENT') }}
     
     -- Include the FLAG and calculate the HASH_KEY
-    , UPSERT_FLAG
-    , SHA2(CONCAT(STRCT_CMPNT_CD, CNSTR_MTRL_CD,'|'), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
+    , FLAG
+    , SHA2(CONCAT(STRCT_CMPNT_CD, CNSTR_MTRL_CD), 256) AS HASH_KEY  -- Concatenate all key columns for hashing
 
     -- Set CREATED_DATETIME only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_TIMESTAMP() 
+        WHEN FLAG = 'I' THEN CURRENT_TIMESTAMP() 
         ELSE AUDIT_CREATED_DATETIME  -- Keep the same value for updates
     END AS AUDIT_CREATED_DATETIME
     
     -- Set CREATED_BY only on inserts
     , CASE 
-        WHEN UPSERT_FLAG = 'I' THEN CURRENT_USER()  
+        WHEN FLAG = 'I' THEN CURRENT_USER()  
         ELSE AUDIT_CREATED_BY  -- Keep the same value for updates
     END AS AUDIT_CREATED_BY                          
 

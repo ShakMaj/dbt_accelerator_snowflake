@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: actv
+    description: "A model that selects data from raw_data"
+    columns:
+      - name: ACTV_ID
+        description: "Unique identifier for the record"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_null
+          - unique
+          - not_null
+
+      - name: AUDIT_CREATED_AT
+        description: "The timestamp when the record was created"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: date

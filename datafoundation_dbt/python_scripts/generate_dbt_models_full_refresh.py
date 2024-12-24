@@ -4,12 +4,16 @@ import csv
 import os
 
 # Path to your DBT models directory (adjust to your project structure)
-schema = 'wescom_pl'
+schema = 'wescom_policy_mgt_ext'
 u_schema = schema.upper()
-models_dir = os.getcwd()+'/models/bronze/'+schema+'/'
+path = os.getcwd()
+
+# Get the parent directory
+parent_dir = os.path.dirname(path)
+models_dir = parent_dir+'/models/bronze/'+schema+'/'
 
 # Path to your CSV file with table details
-csv_file = os.getcwd()+'/seeds/table_list_wescom_pl.csv'
+csv_file = parent_dir+'/seeds/table_list_wescom_ext.csv'
 
 # Read the CSV and generate models dynamically
 with open(csv_file, mode='r') as file:

@@ -14,13 +14,13 @@ models:
       - name: ST_CD
         data_tests:
           - dbt_expectations.expect_column_values_to_not_be_null:
-              name: dbt_test_validation
-              row_condition: "ADDR_ID is not null"
+              name: dbt_test_validation_ST_CD_not_null
+              row_condition: "ST_CD is not null"
           - dbt_expectations.expect_column_values_to_be_of_type:
-              name: dbt_test_validation
-              column_type: date
+              name: dbt_test_validation_ST_CD_Int
+              column_type: INT
           - dbt_expectations.expect_column_values_to_be_in_set:
-              name: dbt_test_validation
+              name: dbt_test_validation_value_list
               value_set: ["NY", "CA", "TX", "FL"]
           - dbt_expectations.expect_column_value_lengths_to_be_between:
               name: dbt_test_validation
